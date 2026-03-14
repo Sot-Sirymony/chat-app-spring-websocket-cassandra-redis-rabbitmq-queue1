@@ -62,7 +62,10 @@ services:
       start_period: 30s
   ebook-chat-app:
     platform: linux/amd64
-    image: eclipse-temurin:8-jdk
+    build:
+      context: ../ebook-chat
+      dockerfile: Dockerfile
+    image: ebook-chat-app:latest
     container_name: ebook-chat-app
     depends_on:
       mysql:
@@ -75,13 +78,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
-    working_dir: /app
-    volumes:
-      - ../ebook-chat-1.0.0.jar:/app/ebook-chat-1.0.0.jar:ro
     command:
-      - java
-      - -jar
-      - /app/ebook-chat-1.0.0.jar
       - --spring.datasource.url=jdbc:mysql://mysql:3306/ebook_chat?useSSL=false&allowPublicKeyRetrieval=true
       - --spring.datasource.username=root
       - --spring.datasource.password=root

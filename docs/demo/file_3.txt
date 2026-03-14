@@ -1,0 +1,3 @@
+Payment form.
+Card: 4111-1111-1111-1111
+Exp: 12/25. Amount: $100.

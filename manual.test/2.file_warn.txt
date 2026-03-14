@@ -1,0 +1,15 @@
+# case file_warn test
+#step1: 3 users joined  the same Chat room “E2E Room 1773063844472”
+            | Role   | Username     | Password   |
+        |--------|--------------|------------|
+        | Admin  | admin        | admin      |
+        | User 1 | sirymony.sot | Xmk2pJUj   |
+        | User 2 | dalen.phea   | IAhSfRn9   |
+    # After user sirymony.sot add file_1_warn.txt add file: all 3 users (admin, sirymony.sot, dalen.phea) 
+    
+    step2: 3 user name sirymony.sot add file  file_1_warn.txt
+    step3. this case warning is allowed  and not need approval
+    step 5: but all three user can't download file it's load file download not allowed
+            - admin download file successfully
+            - sirymony.sot download file successfully
+            - dalen.phea download file successfully

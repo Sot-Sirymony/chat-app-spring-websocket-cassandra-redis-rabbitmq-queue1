@@ -1,0 +1,18 @@
+# case file_require_approval test
+# After approval: all 3 users (admin, sirymony.sot, dalen.phea) one user can't download.
+# If only 2 can download: (1) Restart backend. (2) Use 3 separate browsers or 3 incognito windows; log in as admin, sirymony.sot, dalen.phea in each. (3) Register sirymony.sot and dalen.phea via the app if not in DB. (4) 401 = that user's token missing (log in again in that browser); 403 = file still PENDING or user has no ROLE_USER.
+    step1: 3 users joined  the same Chat room “E2E Room 1773063844472”
+            | Role   | Username     | Password   |
+        |--------|--------------|------------|
+        | Admin  | admin        | admin      |
+        | User 1 | sirymony.sot | Xmk2pJUj   |
+        | User 2 | dalen.phea   | IAhSfRn9   |
+    step2: 3 user name sirymony.sot add file  file_3_require_approval.txt
+    step3. other user admin, and dalen phea can't download while pending file and show message File not yet approved.
+    step4. admin view see under apporval -> admin take action approve
+    step 5: after admin approve, back to chatroom — all 3 users can download:
+            - admin download file successfully
+            - sirymony.sot download file successfully
+            - dalen.phea download file successfully
+    (If any user sees "Download not allowed" or 403: that user should log out and log in again so the JWT has ROLE_USER, then try download again.)
+        

@@ -151,7 +151,9 @@ public class ChatRoomController {
 			String fileRef = instantMessage.getFileRef();
 			br.com.jorgeacetozi.ebookChat.fileapproval.domain.model.FileTransferRequest created = fileTransferRequestService.createPending(
 					principal.getName(), instantMessage.getToUser(), chatRoomId, instantMessage.getText(), fileRef);
-			if (fileRef != null && !fileRef.isEmpty()) {
+			// Only gate the file if the attachment required approval at upload (WARN-only attachments stay downloadable)
+			Boolean attachmentRequiresApproval = instantMessage.getAttachmentRequiresApproval();
+			if (fileRef != null && !fileRef.isEmpty() && Boolean.TRUE.equals(attachmentRequiresApproval)) {
 				minioFileService.linkToRequest(fileRef, created.getId());
 			}
 			auditService.logEvent(principal.getName(), "SEND_MESSAGE", chatRoomId, "pending_approval", "dlp-REQUIRE_APPROVAL", "Request " + created.getId());

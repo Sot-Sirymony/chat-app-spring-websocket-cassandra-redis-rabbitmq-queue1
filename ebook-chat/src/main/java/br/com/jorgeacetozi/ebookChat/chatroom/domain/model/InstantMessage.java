@@ -33,6 +33,9 @@ public class InstantMessage {
 	/** Not persisted in Cassandra; for file attach/send only. BR-3.3 */
 	@Transient
 	private String fileRef;
+	/** When message requires approval: only link file to request if attachment required approval at upload. */
+	@Transient
+	private Boolean attachmentRequiresApproval;
 
 	public InstantMessage() { 
 		this.date = new Date();
@@ -84,6 +87,8 @@ public class InstantMessage {
 	public void setDlpWarning(String dlpWarning) { this.dlpWarning = dlpWarning; }
 	public String getFileRef() { return fileRef; }
 	public void setFileRef(String fileRef) { this.fileRef = fileRef; }
+	public Boolean getAttachmentRequiresApproval() { return attachmentRequiresApproval; }
+	public void setAttachmentRequiresApproval(Boolean attachmentRequiresApproval) { this.attachmentRequiresApproval = attachmentRequiresApproval; }
 
 	@Override
 	public int hashCode() {

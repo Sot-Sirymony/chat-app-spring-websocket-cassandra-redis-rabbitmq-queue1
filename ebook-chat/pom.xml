@@ -23,8 +23,8 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>1.8</java.version>
 		<guava.version>19.0</guava.version>
-		<!-- Set -DskipITs=true to skip integration tests (e.g. when Docker is not available for Testcontainers) -->
-		<skipITs>false</skipITs>
+		<!-- Integration tests need Docker (Testcontainers). Set -DskipITs=false to run them. -->
+		<skipITs>true</skipITs>
 	</properties>
 
 	<dependencyManagement>
@@ -120,7 +120,14 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers</artifactId>
-			<version>1.1.9</version>
+			<version>1.17.6</version>
+		</dependency>
+		<!-- JNA 5.x for Apple Silicon (aarch64-MacOSX) Docker socket support -->
+		<dependency>
+			<groupId>net.java.dev.jna</groupId>
+			<artifactId>jna</artifactId>
+			<version>5.13.0</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.security</groupId>

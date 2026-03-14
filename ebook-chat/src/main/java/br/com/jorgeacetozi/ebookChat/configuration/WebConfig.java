@@ -3,6 +3,8 @@ package br.com.jorgeacetozi.ebookChat.configuration;
 import java.util.Arrays;
 import java.util.Collections;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -19,15 +21,37 @@ public class WebConfig extends WebMvcConfigurerAdapter {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowCredentials(true);
-        config.setAllowedOrigins(Collections.singletonList("http://localhost:3000"));
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Collections.singletonList("*"));
-        config.setExposedHeaders(Collections.singletonList("Authorization"));
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
+        CorsConfiguration global = new CorsConfiguration();
+        global.setAllowCredentials(false); // must be false when using "*" origin per CORS spec
+        global.setAllowedOrigins(Collections.singletonList("*"));
+        global.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        global.setAllowedHeaders(Collections.singletonList("*"));
+        global.setExposedHeaders(Arrays.asList("Authorization", "X-File-Deny-Reason", "Content-Disposition"));
+        UrlBasedCorsConfigurationSource defaultSource = new UrlBasedCorsConfigurationSource();
+        defaultSource.registerCorsConfiguration("/**", global);
+
+        return new CorsConfigurationSource() {
+            @Override
+            public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
+                String path = request.getRequestURI();
+                if (path != null && path.contains("/api/files/") && path.endsWith("/download")) {
+                    String origin = request.getHeader("Origin");
+                    CorsConfiguration fileCors = new CorsConfiguration();
+                    if (origin != null && !origin.isEmpty()) {
+                        fileCors.setAllowCredentials(true);
+                        fileCors.setAllowedOrigins(Collections.singletonList(origin));
+                    } else {
+                        fileCors.setAllowCredentials(false);
+                        fileCors.setAllowedOrigins(Collections.singletonList("*"));
+                    }
+                    fileCors.setAllowedMethods(Arrays.asList("GET", "OPTIONS"));
+                    fileCors.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+                    fileCors.setExposedHeaders(Arrays.asList("X-File-Deny-Reason", "Content-Disposition"));
+                    return fileCors;
+                }
+                return defaultSource.getCorsConfiguration(request);
+            }
+        };
     }
 
     @Bean

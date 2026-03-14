@@ -158,6 +158,8 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
     if (!isPublic) payload.toUser = sendTo;
     if (attachedFile) {
       payload.fileRef = attachedFile.fileId;
+      // Only link file to approval request when attachment required approval at upload (WARN files stay downloadable)
+      payload.attachmentRequiresApproval = attachedFile.dlpRequireApproval === true;
       setAttachedFile(null);
     }
 
@@ -196,12 +198,34 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
   }
 
   function handleDownload(fileId: string, token: string | null) {
-    if (!token) return;
+    if (!token) {
+      setStatus("Please log in to download. If you're already logged in, try refreshing the page or logging in again.");
+      return;
+    }
+    setStatus("");
     const url = getApiUrl(`/api/files/${fileId}/download`);
-    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => {
-        checkAuthResponse(r);
-        if (!r.ok) throw new Error("Download failed");
+    fetch(url, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      mode: "cors",
+      credentials: "include",
+    })
+      .then(async (r) => {
+        const denyReason = r.headers.get("X-File-Deny-Reason");
+        if (r.status === 403) {
+          if (denyReason === "FILE_PENDING_APPROVAL") throw new Error("FILE_PENDING_APPROVAL");
+          if (denyReason === "FORBIDDEN_ROLE") throw new Error("FORBIDDEN_ROLE");
+          if (denyReason === "FILE_NOT_AUTHORIZED") throw new Error("FILE_NOT_AUTHORIZED");
+          throw new Error("DOWNLOAD_FORBIDDEN");
+        }
+        if (r.status === 401) {
+          checkAuthResponse(r);
+          throw new Error("Unauthorized (401). Try logging in again.");
+        }
+        if (!r.ok) {
+          const text = await r.text();
+          throw new Error(`Download failed (${r.status}). ${text || r.statusText}`);
+        }
         return r.blob();
       })
       .then((blob) => {
@@ -210,8 +234,30 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
         a.download = "attachment";
         a.click();
         URL.revokeObjectURL(a.href);
+        setStatus("");
       })
-      .catch(() => setStatus("Download failed."));
+      .catch((err: Error) => {
+        const m = err?.message ?? String(err);
+        const msg =
+          m === "FILE_PENDING_APPROVAL"
+            ? "File not yet approved."
+            : m === "FORBIDDEN_ROLE"
+              ? "Download not allowed for your account. Try logging out and logging in again, then try the download again."
+              : m === "FILE_NOT_AUTHORIZED"
+                ? "This file was rejected or you're not authorized to download it."
+                : m === "DOWNLOAD_FORBIDDEN"
+                  ? "Download not allowed. File may be pending, rejected, or you need to log in again."
+                  : m.startsWith("Download failed (403)")
+                    ? "Download not allowed. File may be pending, rejected, or try logging out and in again."
+                    : m.startsWith("Download failed")
+                      ? m
+                      : m.startsWith("Unauthorized")
+                        ? m
+                        : m === "Failed to fetch" || m.includes("NetworkError")
+                          ? `Cannot reach server. Start backend: ./run-dev.sh or cd ebook-chat && mvn spring-boot:run. Use same host for app and API (e.g. both localhost or both 127.0.0.1). Check: ${getApiUrl("")}`
+                          : `Download failed: ${m}`;
+        setStatus(msg);
+      });
   }
 
   /** Render message text with download links as clickable buttons. */

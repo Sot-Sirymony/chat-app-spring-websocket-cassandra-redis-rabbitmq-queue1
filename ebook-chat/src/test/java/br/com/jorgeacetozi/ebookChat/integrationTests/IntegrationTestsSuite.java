@@ -8,6 +8,7 @@ import br.com.jorgeacetozi.ebookChat.integrationTests.authentication.domain.serv
 import br.com.jorgeacetozi.ebookChat.integrationTests.chatroom.api.ChatRoomControllerTest;
 import br.com.jorgeacetozi.ebookChat.integrationTests.chatroom.domain.service.CassandraInstantMessageServiceTest;
 import br.com.jorgeacetozi.ebookChat.integrationTests.chatroom.domain.service.RedisChatRoomServiceTest;
+import br.com.jorgeacetozi.ebookChat.integrationTests.filestorage.api.FileControllerIntegrationTest;
 import br.com.jorgeacetozi.ebookChat.integrationTests.test.AbstractIntegrationTest;
 
 @RunWith(Suite.class)
@@ -16,7 +17,8 @@ import br.com.jorgeacetozi.ebookChat.integrationTests.test.AbstractIntegrationTe
   RedisChatRoomServiceTest.class,
   DefaultUserServiceTest.class,
   AuthenticationControllerTest.class,
-  ChatRoomControllerTest.class
+  ChatRoomControllerTest.class,
+  FileControllerIntegrationTest.class
 })
 public class IntegrationTestsSuite extends AbstractIntegrationTest {
 

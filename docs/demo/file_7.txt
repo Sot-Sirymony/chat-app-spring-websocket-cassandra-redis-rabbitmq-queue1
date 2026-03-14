@@ -1,0 +1,1 @@
+Long safe content for testing. No PII or confidential wording. You can paste this into chat or upload as file to verify that long clean content is allowed. Lorem ipsum style text: the quick brown fox jumps over the lazy dog. Repeat as needed to test length limits or DLP on larger payloads.

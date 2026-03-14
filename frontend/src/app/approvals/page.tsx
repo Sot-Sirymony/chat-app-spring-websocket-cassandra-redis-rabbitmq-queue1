@@ -17,6 +17,7 @@ export default function ApprovalsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [approveAllLoading, setApproveAllLoading] = useState(false);
 
   function load() {
     if (!token) return;
@@ -91,6 +92,36 @@ export default function ApprovalsPage() {
     }
   }
 
+  async function approveAll() {
+    if (!token || pending.length === 0) return;
+    setError("");
+    setApproveAllLoading(true);
+    const ids = pending.map((r) => r.id);
+    let failed = 0;
+    for (const id of ids) {
+      try {
+        const url = getApiUrl(`/api/file-requests/${id}/approve`);
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        checkAuthResponse(res);
+        if (!res.ok) failed++;
+      } catch {
+        failed++;
+      }
+    }
+    setApproveAllLoading(false);
+    if (failed > 0) {
+      setError(
+        failed === ids.length
+          ? "Approve all failed."
+          : `Approved ${ids.length - failed}, ${failed} failed.`
+      );
+    }
+    load();
+  }
+
   function formatDate(s: string | undefined) {
     if (!s) return "-";
     try {
@@ -116,9 +147,21 @@ export default function ApprovalsPage() {
           <>
             {isAdmin && (
               <section>
-                <h2 className="text-lg font-semibold mb-2">
-                  Pending requests (admin)
-                </h2>
+                <div className="flex items-center justify-between gap-4 mb-2">
+                  <h2 className="text-lg font-semibold">
+                    Pending requests (admin)
+                  </h2>
+                  {pending.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={approveAll}
+                      disabled={approveAllLoading}
+                      className="text-sm px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {approveAllLoading ? "Approving…" : "Approve all"}
+                    </button>
+                  )}
+                </div>
                 <div className="border border-gray-200 rounded overflow-hidden">
                   {pending.length === 0 ? (
                     <p className="px-3 py-4 text-gray-500 text-sm">
@@ -131,6 +174,7 @@ export default function ApprovalsPage() {
                           <th className="px-3 py-2">Requester</th>
                           <th className="px-3 py-2">Recipient</th>
                           <th className="px-3 py-2">Room</th>
+                          <th className="px-3 py-2">Content (preview)</th>
                           <th className="px-3 py-2">Requested</th>
                           <th className="px-3 py-2">Actions</th>
                         </tr>
@@ -139,8 +183,11 @@ export default function ApprovalsPage() {
                         {pending.map((r) => (
                           <tr key={r.id} className="border-t border-gray-100">
                             <td className="px-3 py-2">{r.requester}</td>
-                            <td className="px-3 py-2">{r.recipient}</td>
+                            <td className="px-3 py-2">{r.recipient ?? "-"}</td>
                             <td className="px-3 py-2">{r.roomId ?? "-"}</td>
+                            <td className="px-3 py-2 max-w-[200px] truncate" title={r.contentText ?? ""}>
+                              {r.contentText ? (r.contentText.length > 50 ? r.contentText.slice(0, 50) + "…" : r.contentText) : "-"}
+                            </td>
                             <td className="px-3 py-2">
                               {formatDate(r.requestedAt)}
                             </td>
@@ -148,7 +195,7 @@ export default function ApprovalsPage() {
                               <button
                                 type="button"
                                 onClick={() => approve(r.id)}
-                                disabled={actionLoading === r.id}
+                                disabled={actionLoading === r.id || approveAllLoading}
                                 className="text-green-600 hover:underline disabled:opacity-50"
                               >
                                 Approve
@@ -156,7 +203,7 @@ export default function ApprovalsPage() {
                               <button
                                 type="button"
                                 onClick={() => reject(r.id)}
-                                disabled={actionLoading === r.id}
+                                disabled={actionLoading === r.id || approveAllLoading}
                                 className="text-red-600 hover:underline disabled:opacity-50"
                               >
                                 Reject
