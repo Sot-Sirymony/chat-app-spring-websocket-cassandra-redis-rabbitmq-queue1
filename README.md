@@ -1,5 +1,22 @@
-# Credential Test (3 users for manual testing: 1 admin, 2 non-admin)
+# Quick start (avoid "Communications link failure")
 
+**1. Start dependencies (required before backend):**
+```bash
+./start-dependencies.sh
+```
+Or: `docker-compose -f docker-compose/dependencies.yml up -d mysql redis cassandra rabbitmq-stomp minio`  
+Wait until containers are healthy (~30–60s). Check: `docker-compose -f docker-compose/dependencies.yml ps`
+
+**2. Run app:**
+```bash
+./run-dev.sh
+```
+If you see `ERROR: MySQL is not running on 127.0.0.1:3306`, run step 1 first, wait, then run step 2 again.  
+Make scripts executable once: `chmod +x run-dev.sh start-dependencies.sh start-backend.sh`
+
+---
+
+# Credential Test (3 users for manual testing: 1 admin, 2 non-admin)
 | Role   | Username     | Password   |
 |--------|--------------|------------|
 | Admin  | admin        | admin      |

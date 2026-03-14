@@ -212,11 +212,19 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
     })
       .then(async (r) => {
         const denyReason = r.headers.get("X-File-Deny-Reason");
+<<<<<<< HEAD
         if (r.status === 403 && denyReason === "FILE_PENDING_APPROVAL") {
           throw new Error("FILE_PENDING_APPROVAL");
         }
         if (r.status === 403 && denyReason === "FORBIDDEN_ROLE") {
           throw new Error("FORBIDDEN_ROLE");
+=======
+        if (r.status === 403) {
+          if (denyReason === "FILE_PENDING_APPROVAL") throw new Error("FILE_PENDING_APPROVAL");
+          if (denyReason === "FORBIDDEN_ROLE") throw new Error("FORBIDDEN_ROLE");
+          if (denyReason === "FILE_NOT_AUTHORIZED") throw new Error("FILE_NOT_AUTHORIZED");
+          throw new Error("DOWNLOAD_FORBIDDEN");
+>>>>>>> integrate-ivw
         }
         if (r.status === 401) {
           checkAuthResponse(r);
@@ -241,17 +249,21 @@ export default function ChatRoomPage({ params }: { params: { id: string } }) {
         const msg =
           m === "FILE_PENDING_APPROVAL"
             ? "File not yet approved."
-            : m === "FORBIDDEN_ROLE"
+              : m === "FORBIDDEN_ROLE"
               ? "Download not allowed for your account. Try logging out and logging in again, then try the download again."
-              : m.startsWith("Download failed (403)")
-                ? `${m} If the file was just approved, try logging out and logging in again, then try again.`
-                : m.startsWith("Download failed")
-                  ? m
-                  : m.startsWith("Unauthorized")
-                    ? m
-                    : m === "Failed to fetch" || m.includes("NetworkError")
-                      ? `Cannot reach server. Start backend: ./run-dev.sh or cd ebook-chat && mvn spring-boot:run. Use same host for app and API (e.g. both localhost or both 127.0.0.1). Check: ${getApiUrl("")}`
-                      : `Download failed: ${m}`;
+              : m === "FILE_NOT_AUTHORIZED"
+                ? "This file was rejected or you're not authorized to download it."
+                : m === "DOWNLOAD_FORBIDDEN"
+                  ? "Download not allowed. File may be pending, rejected, or you need to log in again."
+                  : m.startsWith("Download failed (403)")
+                    ? "Download not allowed. File may be pending, rejected, or try logging out and in again."
+                    : m.startsWith("Download failed")
+                      ? m
+                      : m.startsWith("Unauthorized")
+                        ? m
+                        : m === "Failed to fetch" || m.includes("NetworkError")
+                          ? `Cannot reach server. Start backend: ./run-dev.sh or cd ebook-chat && mvn spring-boot:run. Use same host for app and API (e.g. both localhost or both 127.0.0.1). Check: ${getApiUrl("")}`
+                          : `Download failed: ${m}`;
         setStatus(msg);
       });
   }

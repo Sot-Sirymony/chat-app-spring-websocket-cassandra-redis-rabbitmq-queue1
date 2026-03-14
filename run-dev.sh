@@ -2,10 +2,27 @@
 # Run backend (Spring Boot) and frontend (Next.js) with auto-reload for development.
 # Usage: ./run-dev.sh
 # Stop: Ctrl+C (stops both).
+# Requires: MySQL, Redis, Cassandra, RabbitMQ, MinIO — start with:
+#   docker-compose -f docker-compose/dependencies.yml up -d mysql redis cassandra rabbitmq-stomp minio
 
 set -e
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
+
+# Fail fast if MySQL is not reachable (avoids "Communications link failure" after 20s)
+mysql_reachable() {
+  if command -v nc &>/dev/null && nc -z 127.0.0.1 3306 2>/dev/null; then return 0; fi
+  if python3 -c "import socket; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1',3306)); s.close()" 2>/dev/null; then return 0; fi
+  if python -c "import socket; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1',3306)); s.close()" 2>/dev/null; then return 0; fi
+  return 1
+}
+if ! mysql_reachable; then
+  echo "ERROR: MySQL is not running on 127.0.0.1:3306."
+  echo "Start dependencies first: ./start-dependencies.sh"
+  echo "Or: docker-compose -f docker-compose/dependencies.yml up -d mysql redis cassandra rabbitmq-stomp minio"
+  echo "Wait until healthy (~30–60s), then run ./run-dev.sh again."
+  exit 1
+fi
 
 BACKEND_PID=""
 cleanup() {
