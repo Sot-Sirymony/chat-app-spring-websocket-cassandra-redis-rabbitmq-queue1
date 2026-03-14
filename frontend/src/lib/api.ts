@@ -38,6 +38,11 @@ export async function apiFetch<T>(
     if (res.status === 403) {
       throw new Error("You don't have access to this resource.");
     }
+    if (res.status === 404) {
+      throw new Error(
+        "Not found (404). Is the backend running? Check NEXT_PUBLIC_API_URL (e.g. http://localhost:8080)."
+      );
+    }
     if (res.status >= 500) {
       throw new Error("Server error. Please try again later.");
     }

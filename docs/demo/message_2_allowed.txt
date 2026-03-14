@@ -1,0 +1,1 @@
+No sensitive data here. Just a normal chat message for testing DLP ALLOW.

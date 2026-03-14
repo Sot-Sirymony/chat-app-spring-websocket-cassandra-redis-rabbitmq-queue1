@@ -1,0 +1,1 @@
+No sensitive data here. Just a normal chat message for testing the app. You can use this to verify that clean messages are allowed without DLP blocks or warnings.

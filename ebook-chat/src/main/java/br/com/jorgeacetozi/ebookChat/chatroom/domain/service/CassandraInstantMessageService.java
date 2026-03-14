@@ -5,7 +5,8 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import br.com.jorgeacetozi.ebookChat.chatroom.domain.model.ChatRoom;
+import br.com.jorgeacetozi.ebookChat.authentication.domain.model.User;
+import br.com.jorgeacetozi.ebookChat.authentication.domain.repository.UserRepository;
 import br.com.jorgeacetozi.ebookChat.chatroom.domain.model.InstantMessage;
 import br.com.jorgeacetozi.ebookChat.chatroom.domain.repository.InstantMessageRepository;
 
@@ -14,19 +15,21 @@ public class CassandraInstantMessageService implements InstantMessageService {
 
 	@Autowired
 	private InstantMessageRepository instantMessageRepository;
-	
+
 	@Autowired
-	private ChatRoomService chatRoomService;
-	
+	private UserRepository userRepository;
+
 	@Override
 	public void appendInstantMessageToConversations(InstantMessage instantMessage) {
 		if (instantMessage.isFromAdmin() || instantMessage.isPublic()) {
-			ChatRoom chatRoom = chatRoomService.findById(instantMessage.getChatRoomId());
-			if (chatRoom == null || chatRoom.getConnectedUsers() == null) return;
-			chatRoom.getConnectedUsers().forEach(connectedUser -> {
-				instantMessage.setUsername(connectedUser.getUsername());
-				instantMessageRepository.save(instantMessage);
-			});
+			// Persist for all users so that anyone who joins the room later (e.g. admin) sees the message in history.
+			List<User> allUsers = userRepository.findAll();
+			if (allUsers != null) {
+				for (User u : allUsers) {
+					instantMessage.setUsername(u.getUsername());
+					instantMessageRepository.save(instantMessage);
+				}
+			}
 		} else {
 			instantMessage.setUsername(instantMessage.getFromUser());
 			instantMessageRepository.save(instantMessage);

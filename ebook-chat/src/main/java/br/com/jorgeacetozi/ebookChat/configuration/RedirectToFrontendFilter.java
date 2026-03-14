@@ -40,6 +40,11 @@ public class RedirectToFrontendFilter extends OncePerRequestFilter {
         }
         String path = request.getRequestURI();
         if (path == null) path = "";
+        // Never redirect API or WS requests; only HTML pages
+        if (path.startsWith("/api/") || path.startsWith("/ws")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         boolean redirect = REDIRECT_PATHS.contains(path) || path.startsWith("/chatroom/");
         if (!redirect) {
             filterChain.doFilter(request, response);

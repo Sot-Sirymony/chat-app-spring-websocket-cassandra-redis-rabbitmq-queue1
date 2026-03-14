@@ -131,6 +131,7 @@ export default function ApprovalsPage() {
                           <th className="px-3 py-2">Requester</th>
                           <th className="px-3 py-2">Recipient</th>
                           <th className="px-3 py-2">Room</th>
+                          <th className="px-3 py-2">Content (preview)</th>
                           <th className="px-3 py-2">Requested</th>
                           <th className="px-3 py-2">Actions</th>
                         </tr>
@@ -139,8 +140,11 @@ export default function ApprovalsPage() {
                         {pending.map((r) => (
                           <tr key={r.id} className="border-t border-gray-100">
                             <td className="px-3 py-2">{r.requester}</td>
-                            <td className="px-3 py-2">{r.recipient}</td>
+                            <td className="px-3 py-2">{r.recipient ?? "-"}</td>
                             <td className="px-3 py-2">{r.roomId ?? "-"}</td>
+                            <td className="px-3 py-2 max-w-[200px] truncate" title={r.contentText ?? ""}>
+                              {r.contentText ? (r.contentText.length > 50 ? r.contentText.slice(0, 50) + "…" : r.contentText) : "-"}
+                            </td>
                             <td className="px-3 py-2">
                               {formatDate(r.requestedAt)}
                             </td>

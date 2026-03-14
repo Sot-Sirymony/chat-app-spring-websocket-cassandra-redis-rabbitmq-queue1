@@ -2,8 +2,11 @@ package br.com.jorgeacetozi.ebookChat.filestorage.api;
 
 import java.io.InputStream;
 import java.security.Principal;
-
 import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -68,15 +71,25 @@ public class FileController {
 		boolean dlpWarning = dlp.getAction() == DlpAction.WARN;
 		boolean dlpRequireApproval = dlp.getAction() == DlpAction.REQUIRE_APPROVAL;
 		long sizeBytes = file.getSize();
+
+		// Only REQUIRE_APPROVAL (e.g. SSN) creates an approval request. WARN (e.g. confidential/secret) does not.
+		if (dlpRequireApproval) {
+			String contentLabel = "File upload: " + (file.getOriginalFilename() != null ? file.getOriginalFilename() : "attachment");
+			FileTransferRequest created = fileTransferRequestService.createPending(username, null, null, contentLabel, fileId);
+			minioFileService.linkToRequest(fileId, created.getId());
+		}
+
 		return new UploadResponse(fileId, file.getOriginalFilename(), sizeBytes, dlpWarning, dlpRequireApproval);
 	}
 
 	/**
-	 * Download file by id. Allowed if: (1) user is uploader, or (2) file is linked to an APPROVED FileTransferRequest and user is requester or recipient.
+	 * Download file by id. Allowed if: (1) file has no request (WARN/ALLOW); (2) file is APPROVED (any authenticated user); (3) PENDING and user is admin; (4) REJECTED and user is admin/requester/recipient.
 	 */
 	@GetMapping("/{id}/download")
 	@Secured({ "ROLE_USER", "ROLE_ADMIN" })
 	public void download(@PathVariable String id, Principal principal, HttpServletResponse response) throws Exception {
+		// CORS is handled by FileDownloadCorsFilter (reflects Origin when credentials are used)
+
 		String username = principal != null ? principal.getName() : null;
 		if (username == null) {
 			response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Not authenticated");
@@ -90,17 +103,47 @@ public class FileController {
 		}
 
 		boolean allowed = false;
+		String denyReason = null;
+		String denyMessage = "Not allowed to download this file";
 		if (meta.getRequestId() != null) {
 			FileTransferRequest req = fileTransferRequestService.findById(meta.getRequestId());
-			if (req != null && FileTransferRequest.Status.APPROVED.name().equals(req.getStatus())) {
-				allowed = username.equals(req.getRequester()) || username.equals(req.getRecipient());
+			if (req == null) {
+				// Orphaned link (request deleted or missing): allow download.
+				allowed = true;
+			} else {
+				String status = normalizeStatus(req.getStatus());
+				String requester = req.getRequester();
+				String recipient = req.getRecipient();
+				boolean isRequesterOrRecipient = (requester != null && username.equals(requester))
+						|| (recipient != null && !recipient.isEmpty() && username.equals(recipient));
+				// PENDING: only admin can download.
+				if (FileTransferRequest.Status.PENDING.name().equals(status)) {
+					if (hasRoleAdmin()) {
+						allowed = true;
+					} else {
+						denyReason = "FILE_PENDING_APPROVAL";
+						denyMessage = "File not yet approved";
+					}
+				} else if (FileTransferRequest.Status.REJECTED.name().equals(status)) {
+					allowed = hasRoleAdmin() || isRequesterOrRecipient;
+					if (!allowed) {
+						denyReason = "FILE_NOT_AUTHORIZED";
+						denyMessage = "Not allowed to download this file";
+					}
+				} else {
+					// APPROVED or any other decided/legacy status: allow all authenticated users (all 3 can download).
+					allowed = true;
+				}
 			}
+		} else {
+			// File not linked to any request (WARN or ALLOW upload): allow any authenticated user.
+			allowed = true;
 		}
 		if (!allowed) {
-			allowed = username.equals(meta.getUploader());
-		}
-		if (!allowed) {
-			response.sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to download this file");
+			if (denyReason != null) {
+				response.setHeader("X-File-Deny-Reason", denyReason);
+			}
+			response.sendError(HttpServletResponse.SC_FORBIDDEN, denyMessage);
 			return;
 		}
 
@@ -118,6 +161,19 @@ public class FileController {
 			}
 			response.getOutputStream().flush();
 		}
+	}
+
+	private static boolean hasRoleAdmin() {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		if (auth == null || auth.getAuthorities() == null) return false;
+		return auth.getAuthorities().stream()
+				.map(GrantedAuthority::getAuthority)
+				.anyMatch("ROLE_ADMIN"::equals);
+	}
+
+	/** Normalize status for comparison (handles DB casing, e.g. "pending" -> "PENDING"). */
+	private static String normalizeStatus(String status) {
+		return status != null ? status.trim().toUpperCase() : null;
 	}
 
 	private static String sanitizeFilename(String name) {

@@ -18,9 +18,11 @@ import br.com.jorgeacetozi.ebookChat.unitTests.phase4.ChatMetricsServiceTest;
 import br.com.jorgeacetozi.ebookChat.unitTests.phase4.UserRiskScoreServiceTest;
 import br.com.jorgeacetozi.ebookChat.unitTests.phase5.PresidioPropertiesTest;
 import br.com.jorgeacetozi.ebookChat.unitTests.phase5.DlpEnginePresidioMergeAndFallbackTest;
+import br.com.jorgeacetozi.ebookChat.unitTests.filestorage.api.FileControllerTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+  FileControllerTest.class,
   InstantMessageBuilderTest.class,
   DestinationsTest.class,
   SystemMessagesTest.class,

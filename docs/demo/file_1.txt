@@ -1,0 +1,3 @@
+Project notes - no sensitive data.
+Meeting agenda: timeline, budget, next steps.
+Use for testing that safe files are accepted.
